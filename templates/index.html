@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftMail</title>
+<link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #0f0f1a;
+    --card:         #1a1a2e;
+    --card-header:  linear-gradient(135deg, #1e1e3f 0%, #1a1a2e 100%);
+    --border:       #2d2d4e;
+    --surface:      #13132a;
+    --input-bg:     #0f0f1a;
+    --text:         #e2e8f0;
+    --text-muted:   #94a3b8;
+    --text-dim:     #7c7ca0;
+    --text-faint:   #4a4a6a;
+    --accent:       #6366f1;
+    --accent2:      #8b5cf6;
+    --tag-bg:       #1e1e3f;
+    --tag-border:   #3730a3;
+    --tag-color:    #a5b4fc;
+    --scroll-track: #1a1a2e;
+    --scroll-thumb: #3d3d6e;
+    --tip-bg:       #18181b;
+    --tip-border:   #3f3f5a;
+    --progress-bg:  #2d2d4e;
+    --badge-load-bg:#1e1e3f;
+    --badge-load-c: #a5b4fc;
+    --badge-load-b: #3730a3;
+  }
+  [data-theme="light"] {
+    --bg:           #eef0f7;
+    --card:         #ffffff;
+    --card-header:  linear-gradient(135deg, #f0f0ff 0%, #ffffff 100%);
+    --border:       #d1d5db;
+    --surface:      #f5f6ff;
+    --input-bg:     #f9faff;
+    --text:         #111827;
+    --text-muted:   #374151;
+    --text-dim:     #6b7280;
+    --text-faint:   #9ca3af;
+    --accent:       #4f46e5;
+    --accent2:      #7c3aed;
+    --tag-bg:       #eef2ff;
+    --tag-border:   #c7d2fe;
+    --tag-color:    #4338ca;
+    --scroll-track: #f1f5f9;
+    --scroll-thumb: #c7d2fe;
+    --tip-bg:       #1e1e2e;
+    --tip-border:   #4f46e5;
+    --progress-bg:  #e5e7eb;
+    --badge-load-bg:#eef2ff;
+    --badge-load-c: #4338ca;
+    --badge-load-b: #c7d2fe;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex;
+    align-items: flex-start; justify-content: center;
+    padding: 40px 16px; transition: background 0.3s, color 0.3s;
+  }
+  .card {
+    width: 100%; max-width: 900px;
+    background: var(--card); border-radius: 16px;
+    border: 1px solid var(--border); overflow: hidden;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .card-header {
+    padding: 24px 36px; border-bottom: 1px solid var(--border);
+    background: var(--card-header);
+    display: flex; align-items: center; gap: 14px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .header-info { flex: 1; }
+  .card-header h1 { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  .card-header p  { font-size: 0.82rem; color: var(--text-dim); margin-top: 3px; }
+  .theme-btn {
+    width: 42px; height: 42px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 1.15rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: var(--text-muted);
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  }
+  .theme-btn:hover { border-color: var(--accent); background: var(--tag-bg); transform: rotate(20deg) scale(1.1); }
+  .card-body { padding: 32px 36px; }
+  .step-label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .step-label .num {
+    width: 22px; height: 22px; background: var(--accent); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800; flex-shrink: 0;
+  }
+  .step-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section { margin-bottom: 32px; }
+  label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 7px; }
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"], select {
+    width: 100%; padding: 11px 14px; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text) !important; font-size: 0.92rem; font-family: inherit;
+    transition: border-color 0.2s, background 0.3s; margin-bottom: 16px;
+  }
+  input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  select option { background: var(--card); color: var(--text); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 26px;
+    text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 12px; position: relative;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: var(--surface); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; width: 100%; height: 100%; }
+  .upload-zone .icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .upload-zone p    { font-size: 0.88rem; color: var(--text-dim); }
+  .upload-zone span { font-size: 0.76rem; color: var(--text-faint); margin-top: 4px; display: block; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+  .badge.success { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+  .badge.error   { background: #2d0a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .badge.loading { background: var(--badge-load-bg); color: var(--badge-load-c); border: 1px solid var(--badge-load-b); }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .toggle-row .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-row .toggle-title { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+  .toggle-row .toggle-desc  { font-size: 0.76rem; color: var(--text-dim); }
+  .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: var(--border); border-radius: 24px; transition: background 0.2s; }
+  .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+  #custom-smtp  { display: none; }
+  #footer-input { display: none; margin-top: 10px; }
+  #personalize-tags { display: none; margin-top: 10px; }
+  .tag-btn {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+    background: var(--tag-bg); border: 1px solid var(--tag-border);
+    border-radius: 6px; color: var(--tag-color);
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    margin-right: 6px; margin-bottom: 6px;
+  }
+  .tag-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .subject-wrapper {
+    display: flex; align-items: stretch; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 16px; overflow: visible; transition: border-color 0.2s;
+  }
+  .subject-wrapper:focus-within { border-color: var(--accent); }
+  .subject-prefix {
+    padding: 0 14px; font-size: 0.82rem; font-weight: 700;
+    color: var(--accent); background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; align-items: center;
+    white-space: nowrap; flex-shrink: 0; border-radius: 8px 0 0 8px;
+  }
+  .subject-quill-wrap { flex: 1; min-width: 0; overflow: visible; }
+  .subject-quill-wrap .ql-toolbar.ql-snow {
+    background: var(--surface) !important; border: none !important;
+    border-right: 1px solid var(--border) !important;
+    padding: 6px 10px !important; display: flex; align-items: center; overflow: visible !important;
+  }
+  .subject-quill-wrap .ql-container.ql-snow { border: none !important; background: transparent !important; }
+  .subject-quill-wrap .ql-editor {
+    padding: 10px 14px !important; min-height: unset !important;
+    max-height: 44px; overflow: hidden;
+    color: var(--text) !important; font-size: 0.92rem; line-height: 1.5;
+  }
+  .subject-quill-wrap .ql-editor.ql-blank::before { color: var(--text-faint) !important; font-style: normal; }
+  .quill-wrapper {
+    border: 1px solid var(--border); border-radius: 8px;
+    overflow: visible; margin-bottom: 20px; transition: border-color 0.2s;
+  }
+  .quill-wrapper:focus-within { border-color: var(--accent); }
+  .ql-toolbar.ql-snow {
+    background: var(--surface) !important; border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 10px 12px; flex-wrap: wrap; overflow: visible !important;
+  }
+  .ql-container.ql-snow {
+    border: none !important; background: var(--input-bg);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--text) !important; transition: background 0.3s;
+  }
+  .ql-editor { min-height: 240px; color: var(--text) !important; font-size: 0.95rem; line-height: 1.8; padding: 18px 20px; }
+  .ql-editor * { color: inherit; }
+  .ql-editor.ql-blank::before { color: var(--text-faint) !important; font-style: normal; }
+  .ql-snow .ql-stroke { stroke: var(--text-muted) !important; }
+  .ql-snow .ql-fill   { fill:   var(--text-muted) !important; }
+  .ql-snow .ql-picker  { color: var(--text-muted) !important; }
+  .ql-snow .ql-picker-options { background: var(--card) !important; border-color: var(--border) !important; }
+  .ql-snow .ql-picker-item    { color: var(--text) !important; }
+  .ql-snow .ql-picker-item:hover { color: var(--accent) !important; }
+  .ql-snow button:hover .ql-stroke { stroke: var(--accent) !important; }
+  .ql-snow button:hover .ql-fill   { fill:   var(--accent) !important; }
+  .ql-snow .ql-active .ql-stroke   { stroke: var(--accent) !important; }
+  .ql-snow .ql-active .ql-fill     { fill:   var(--accent) !important; }
+  .ql-snow .ql-picker-label:hover  { color: var(--accent) !important; }
+  .ql-snow .ql-picker-label:hover .ql-stroke { stroke: var(--accent) !important; }
+
+  /* ── Tag Picker Dropdown in Toolbar ── */
+  .ql-tag-picker { display: inline-flex; align-items: center; vertical-align: middle; position: relative; }
+  .ql-tag-picker-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 5px; cursor: pointer;
+    background: var(--tag-bg); border: 1px solid var(--tag-border);
+    font-size: 0.78rem; font-weight: 700; color: var(--accent);
+    font-family: inherit; white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .ql-tag-picker-label:hover,
+  .ql-tag-picker-label.open { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tp-arrow {
+    display: inline-block; width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-top: 5px solid currentColor; transition: transform 0.2s;
+  }
+  .ql-tag-picker-label.open .tp-arrow { transform: rotate(180deg); }
+  .ql-tag-menu {
+    display: none; position: fixed;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    z-index: 999999; min-width: 200px; padding: 5px 0; overflow: hidden;
+  }
+  .ql-tag-menu.open { display: block; }
+  .ql-tag-menu-item {
+    display: flex; flex-direction: column;
+    padding: 9px 16px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .ql-tag-menu-item:hover { background: var(--tag-bg); }
+  .ql-tag-menu-item .ti-name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+  .ql-tag-menu-item .ti-code { font-size: 0.72rem; color: var(--accent); font-family: monospace; margin-top: 2px; }
+  .ql-tag-menu-item:hover .ti-name { color: var(--accent); }
+
+  /* ── JS Tooltip ── */
+  #ql-tooltip {
+    position: fixed; background: var(--tip-bg); color: #f1f5f9;
+    font-size: 0.72rem; font-weight: 500; padding: 5px 10px;
+    border-radius: 6px; border: 1px solid var(--tip-border);
+    white-space: nowrap; pointer-events: none;
+    z-index: 99999; opacity: 0; transition: opacity 0.15s;
+  }
+  #ql-tooltip.show { opacity: 1; }
+
+  .send-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .send-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .progress-wrap { margin-top: 20px; display: none; }
+  .progress-bar  { height: 6px; background: var(--progress-bg); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.4s ease; border-radius: 3px; }
+  .progress-text { font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; text-align: center; }
+  .cancel-btn {
+    margin-top: 10px; width: 100%; padding: 9px;
+    background: transparent; border: 1px solid #7f1d1d;
+    color: #f87171; border-radius: 8px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .cancel-btn:hover { background: #2d0a0a; }
+  .result { margin-top: 20px; padding: 16px 20px; border-radius: 10px; font-size: 0.88rem; line-height: 1.7; }
+  .result.success { background: #052e16; border: 1px solid #166534; color: #4ade80; }
+  .result.error   { background: #2d0a0a; border: 1px solid #7f1d1d; color: #f87171; }
+  .failed-list { margin-top: 10px; max-height: 110px; overflow-y: auto; font-size: 0.8rem; color: #fca5a5; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--scroll-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
+</style>
+</head>
+
+<body>
+<div id="ql-tooltip"></div>
+<div class="card">
+  <div class="card-header">
+    <img src="/static/logo.svg" width="42" height="42" style="border-radius:10px;">
+    <div class="header-info">
+      <h1>SwiftMail</h1>
+      <p>From one to a million, effortlessly.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </div>
+  <div class="card-body">
+
+    <div class="section">
+      <div class="step-label"><span class="num">1</span> Upload Email List</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".xlsx,.csv,.json">
+        <div class="icon">📂</div>
+        <p>Click or drag & drop your file here</p>
+        <span>Supports .xlsx · .csv · .json</span>
+      </div>
+      <div id="uploadStatus"></div>
+      <div id="personalize-tags">
+        <div class="toggle-row" style="margin-top:10px;">
+          <div class="toggle-info">
+            <span class="toggle-title">✨ Personalization</span>
+            <span class="toggle-desc">Names detected — use {% raw %}{{first_name}}{% endraw %}, {% raw %}{{last_name}}{% endraw %}, {% raw %}{{full_name}}{% endraw %} in subject & body</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="personalizeToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="step-label"><span class="num">2</span> SMTP Configuration</div>
+      <div class="row">
+        <div>
+          <label>Email Provider</label>
+          <select id="provider" onchange="toggleCustom()">
+            {% for p in providers %}
+            <option value="{{ p }}">{{ p.capitalize() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Sender Email</label>
+          <input type="email" id="senderEmail" placeholder="you@example.com">
+        </div>
+      </div>
+      <label>App Password</label>
+      <input type="password" id="senderPass" placeholder="Your 16-character app password">
+      <div id="custom-smtp">
+        <div class="row">
+          <div>
+            <label>Custom SMTP Host</label>
+            <input type="text" id="customHost" placeholder="smtp.yourdomain.com">
+          </div>
+          <div>
+            <label>Port</label>
+            <input type="number" id="customPort" value="587">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="step-label"><span class="num">3</span> Compose Email</div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-title">📐 Professional Email Template</span>
+          <span class="toggle-desc">Wraps your email in a clean white card layout</span>
+        </div>
+        <label class="switch"><input type="checkbox" id="templateToggle" checked><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-title">📝 Email Footer</span>
+          <span class="toggle-desc">Add a footer line at the bottom of every email</span>
+        </div>
+        <label class="switch"><input type="checkbox" id="footerToggle" onchange="toggleFooter()"><span class="slider"></span></label>
+      </div>
+      <div id="footer-input">
+        <input type="text" id="footerText" placeholder="e.g. © 2025 Your Company · Unsubscribe">
+      </div>
+      <label style="margin-top:8px;">Subject</label>
+      <div class="subject-wrapper">
+        <span class="subject-prefix">Subject</span>
+        <div class="subject-quill-wrap"><div id="subject-editor"></div></div>
+      </div>
+      <label>Body</label>
+      <div class="quill-wrapper"><div id="body-editor"></div></div>
+    </div>
+
+    <button class="send-btn" id="sendBtn" onclick="sendEmails()" disabled>🚀 Send Emails</button>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Connecting to SMTP server...</div>
+      <button class="cancel-btn" id="cancelBtn" onclick="cancelSend()" style="display:none;">✖ Cancel Sending</button>
+    </div>
+    <div id="result"></div>
+  </div>
+</div>
+
+<script>
+{% raw %}
+// ── Theme ──────────────────────────────────────────────────────────────────
+const html = document.documentElement;
+const themeBtn = document.getElementById('themeBtn');
+function applyTheme(t) {
+  html.setAttribute('data-theme', t);
+  themeBtn.textContent = t === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('theme', t);
+}
+function toggleTheme() { applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
+applyTheme(localStorage.getItem('theme') || 'dark');
+
+// ── Quill Line Height ──────────────────────────────────────────────────────
+const Parchment = Quill.import('parchment');
+const lineHeightStyle = new Parchment.Attributor.Style('lineHeight', 'line-height', {
+  scope: Parchment.Scope.INLINE,
+  whitelist: ['1.0','1.2','1.5','1.8','2.0','2.5','3.0']
+});
+Quill.register(lineHeightStyle, true);
+
+// ── Toolbars ───────────────────────────────────────────────────────────────
+const bodyToolbar = [
+  [{ font: [] }, { size: ['small', false, 'large', 'huge'] }],
+  ['bold', 'italic', 'underline', 'strike'],
+  [{ color: [] }, { background: [] }],
+  [{ script: 'sub' }, { script: 'super' }],
+  [{ align: [] }],
+  [{ lineHeight: ['1.0','1.2','1.5','1.8','2.0','2.5','3.0'] }],
+  [{ list: 'ordered' }, { list: 'bullet' }],
+  [{ indent: '-1' }, { indent: '+1' }],
+  ['blockquote', 'code-block'],
+  ['link', 'image', 'video'],
+  ['clean']
+];
+const subjectToolbar = [['bold','italic','underline'],[{ color: [] }]];
+
+const bodyQuill = new Quill('#body-editor', {
+  theme: 'snow', placeholder: 'Write or paste your email body here...',
+  modules: { toolbar: bodyToolbar }
+});
+const subjectQuill = new Quill('#subject-editor', {
+  theme: 'snow', placeholder: 'Enter your email subject...',
+  modules: { toolbar: subjectToolbar }
+});
+subjectQuill.keyboard.addBinding({ key: 'Enter' }, () => false);
+subjectQuill.keyboard.addBinding({ key: 'Enter', shiftKey: true }, () => false);
+
+// ── Tag picker dropdown in toolbar ─────────────────────────────────────────
+function insertPlaceholder(code) {
+  const len = bodyQuill.getLength();
+  const idx = len > 1 ? len - 1 : 0;
+  bodyQuill.insertText(idx, code, 'user');
+  bodyQuill.setSelection(idx + code.length, 0);
+  bodyQuill.focus();
+}
+window.insertPlaceholder = insertPlaceholder;
+
+(function() {
+  const wrap = document.createElement('span');
+  wrap.className = 'ql-formats ql-tag-picker';
+
+  const btn = document.createElement('div');
+  btn.className = 'ql-tag-picker-label';
+  btn.innerHTML = '&#10022; Insert <span class="tp-arrow"></span>';
+
+  const drop = document.createElement('div');
+  drop.className = 'ql-tag-menu';
+
+  const items = [
+    ['First Name', '{{first_name}}'],
+    ['Last Name',  '{{last_name}}'],
+    ['Full Name',  '{{full_name}}'],
+    ['Email',      '{{email}}'],
+  ];
+
+  items.forEach(([label, code]) => {
+    const item = document.createElement('div');
+    item.className = 'ql-tag-menu-item';
+    item.innerHTML = `<span class="ti-name">${label}</span>`;
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      insertPlaceholder(code);
+      drop.classList.remove('open');
+      btn.classList.remove('open');
+    });
+    drop.appendChild(item);
+  });
+
+  wrap.appendChild(btn);
+  wrap.appendChild(drop);
+  bodyQuill.getModule('toolbar').container.appendChild(wrap);
+
+  btn.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const open = drop.classList.toggle('open');
+    btn.classList.toggle('open', open);
+    if (open) {
+      const r = btn.getBoundingClientRect();
+      drop.style.top  = (r.bottom + 4) + 'px';
+      drop.style.left = r.left + 'px';
+    }
+  });
+
+  document.addEventListener('mousedown', (e) => {
+    if (!wrap.contains(e.target)) {
+      drop.classList.remove('open');
+      btn.classList.remove('open');
+    }
+  });
+})();
+
+// ── JS Tooltips ────────────────────────────────────────────────────────────
+const tooltipEl = document.getElementById('ql-tooltip');
+const tooltipMap = {
+  'ql-bold':'Bold','ql-italic':'Italic','ql-underline':'Underline','ql-strike':'Strikethrough',
+  'ql-link':'Insert Link','ql-image':'Insert Image','ql-video':'Insert Video',
+  'ql-blockquote':'Blockquote','ql-code-block':'Code Block','ql-clean':'Clear Formatting',
+  'ql-list[value="ordered"]':'Ordered List','ql-list[value="bullet"]':'Bullet List',
+  'ql-indent[value="-1"]':'Decrease Indent','ql-indent[value="+1"]':'Increase Indent',
+  'ql-script[value="sub"]':'Subscript','ql-script[value="super"]':'Superscript',
+};
+const pickerMap = {
+  'ql-font':'Font Family','ql-size':'Font Size','ql-color':'Text Color',
+  'ql-background':'Background Color','ql-align':'Text Align','ql-lineHeight':'Line Height',
+};
+function showTip(el, text) {
+  const r = el.getBoundingClientRect();
+  tooltipEl.textContent = text;
+  tooltipEl.style.left = (r.left + r.width / 2) + 'px';
+  tooltipEl.style.top  = (r.top - 8) + 'px';
+  tooltipEl.style.transform = 'translate(-50%, -100%)';
+  tooltipEl.classList.add('show');
+}
+function hideTip() { tooltipEl.classList.remove('show'); }
+
+document.querySelectorAll('.ql-toolbar').forEach(toolbar => {
+  toolbar.querySelectorAll('button').forEach(btn => {
+    const cls = Array.from(btn.classList).find(c => c.startsWith('ql-'));
+    if (!cls) return;
+    const val = btn.getAttribute('value');
+    const key = val ? `${cls}[value="${val}"]` : cls;
+    const tip = tooltipMap[key] || tooltipMap[cls];
+    if (!tip) return;
+    btn.addEventListener('mouseenter', () => showTip(btn, tip));
+    btn.addEventListener('mouseleave', hideTip);
+  });
+  toolbar.querySelectorAll('.ql-picker').forEach(picker => {
+    const cls = Array.from(picker.classList).find(c => c.startsWith('ql-') && c !== 'ql-picker' && c !== 'ql-expanded');
+    const tip = cls && pickerMap[cls];
+    if (!tip) return;
+    picker.addEventListener('mouseenter', () => showTip(picker, tip));
+    picker.addEventListener('mouseleave', hideTip);
+  });
+});
+
+// ── Recipients & tag insert ────────────────────────────────────────────────
+let recipients = [];
+let lastFocused = 'body';
+bodyQuill.root.addEventListener('focus', () => lastFocused = 'body');
+subjectQuill.root.addEventListener('focus', () => lastFocused = 'subject');
+
+function insertTag(tag) {
+  const q = lastFocused === 'subject' ? subjectQuill : bodyQuill;
+  const range = q.getSelection(true);
+  q.insertText(range ? range.index : q.getLength() - 1, tag, 'user');
+}
+
+// ── File Upload ────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', async function () {
+  const formData = new FormData();
+  formData.append('file', this.files[0]);
+  document.getElementById('uploadStatus').innerHTML = `<span class="badge loading">⏳ Reading file...</span>`;
+  try {
+    const res = await axios.post('/upload', formData);
+    recipients = res.data.recipients;
+    document.getElementById('uploadStatus').innerHTML =
+      `<span class="badge success">✅ ${res.data.count} recipients loaded</span>`;
+    document.getElementById('uploadZone').style.borderColor = '#166534';
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('personalize-tags').style.display = res.data.has_names ? 'block' : 'none';
+  } catch (e) {
+    document.getElementById('uploadStatus').innerHTML =
+      `<span class="badge error">❌ ${e.response?.data?.error || 'Upload failed'}</span>`;
+  }
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function toggleCustom() {
+  document.getElementById('custom-smtp').style.display =
+    document.getElementById('provider').value === 'custom' ? 'block' : 'none';
+}
+function toggleFooter() {
+  document.getElementById('footer-input').style.display =
+    document.getElementById('footerToggle').checked ? 'block' : 'none';
+}
+
+// ── Send ───────────────────────────────────────────────────────────────────
+let currentJobId = null;
+let currentEs    = null;
+
+async function sendEmails() {
+  const subjectHTML = subjectQuill.root.innerHTML.trim();
+  const subjectText = subjectQuill.getText().trim();
+  const body        = bodyQuill.root.innerHTML.trim();
+  const sender      = document.getElementById('senderEmail').value.trim();
+  const pass        = document.getElementById('senderPass').value.trim();
+  const provider    = document.getElementById('provider').value;
+  const useTemplate = document.getElementById('templateToggle').checked;
+  const footerOn    = document.getElementById('footerToggle').checked;
+  const footerText  = footerOn ? document.getElementById('footerText').value.trim() : '';
+  const personalize = document.getElementById('personalizeToggle')?.checked ?? false;
+
+  if (!subjectText || bodyQuill.getText().trim() === '' || !sender || !pass) {
+    showResult('error', '⚠️ Please fill in all fields before sending.'); return;
+  }
+
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.innerHTML = '⏳ Sending...';
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('cancelBtn').style.display = 'block';
+  document.getElementById('result').innerHTML = '';
+  setProgress(0, 'Connecting to SMTP server...');
+
+  try {
+    const res = await axios.post('/send', {
+      recipients, subject: subjectHTML, body, provider,
+      sender_email: sender, sender_pass: pass,
+      use_template: useTemplate, footer_text: footerText, personalize,
+      custom_host: document.getElementById('customHost')?.value || '',
+      custom_port: document.getElementById('customPort')?.value || 587,
+    });
+
+    currentJobId = res.data.job_id;
+    const total  = res.data.total;
+
+    currentEs = new EventSource(`/progress/${currentJobId}`);
+    currentEs.onmessage = (e) => {
+      const d = JSON.parse(e.data);
+
+      if (d.error && !d.total) {
+        currentEs.close();
+        setProgress(100, '');
+        showResult('error', `❌ ${d.error}`);
+        resetBtn();
+        return;
+      }
+
+      const pct = total > 0 ? Math.round((d.sent / total) * 100) : 0;
+      setProgress(pct, d.cancelled ? '✖ Cancelled' : `Sent ${d.sent} of ${total}...`);
+
+      if (d.done) {
+        currentEs.close();
+        currentEs = null;
+        document.getElementById('cancelBtn').style.display = 'none';
+
+        if (d.error) {
+          showResult('error', `❌ ${d.error}`);
+        } else if (d.cancelled) {
+          let html = `⚠️ Cancelled — sent <strong>${d.sent} / ${total}</strong> before stopping.`;
+          if (d.failed.length) html += failedHtml(d.failed);
+          showResult('error', html);
+        } else {
+          setProgress(100, 'Done!');
+          let html = `✅ Successfully sent <strong>${d.sent} / ${total}</strong> emails.`;
+          if (d.failed.length) html += failedHtml(d.failed);
+          showResult(d.failed.length === total ? 'error' : 'success', html);
+        }
+        resetBtn();
+      }
+    };
+    currentEs.onerror = () => {
+      currentEs.close();
+      showResult('error', '❌ Lost connection to server.');
+      resetBtn();
+    };
+
+  } catch (e) {
+    setProgress(0, '');
+    showResult('error', `❌ ${e.response?.data?.error || 'Something went wrong. Check your SMTP credentials.'}`);
+    resetBtn();
+  }
+}
+
+async function cancelSend() {
+  if (!currentJobId) return;
+  document.getElementById('cancelBtn').disabled = true;
+  await axios.post(`/cancel/${currentJobId}`).catch(() => {});
+}
+
+function resetBtn() {
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = false; btn.innerHTML = '🚀 Send Emails';
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('cancelBtn').disabled = false;
+  currentJobId = null;
+}
+function failedHtml(failed) {
+  return `<div class="failed-list">❌ Failed (${failed.length}):<br>${failed.map(f => `• ${f.email} — ${f.error}`).join('<br>')}</div>`;
+}
+function setProgress(pct, text) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+function showResult(type, html) {
+  document.getElementById('result').innerHTML = `<div class="result ${type}">${html}</div>`;
+}
+{% endraw %}
+</script>
+</html>

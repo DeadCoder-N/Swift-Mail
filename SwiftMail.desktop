@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=SwiftMail
+Comment=Launch SwiftMail App
+Exec=gnome-terminal -- bash -c "/home/nitesh/Desktop/SwiftMail/Start.sh"
+Icon=/home/nitesh/Desktop/SwiftMail/static/logo.png
+Terminal=false
+Type=Application
